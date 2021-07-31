@@ -15,6 +15,9 @@
     body {
       padding: 1em;
     }
+    .btn {
+      cursor: pointer;
+    }
   </style>
 
   <script src="https://unpkg.com/vue@next"></script>
@@ -34,7 +37,7 @@
   <div id="app">
 
     <p>
-      站點名稱搜尋: <input type="text">
+      站點名稱搜尋: <input type="text" v-model="searchValue">
     </p>
 
     <table class="table table-striped">
@@ -44,18 +47,26 @@
           <th>場站名稱</th>
           <th>場站區域</th>
           <th>目前可用車輛
-            <i class="fa fa-sort-asc" aria-hidden="true"></i>
-            <i class="fa fa-sort-desc" aria-hidden="true"></i>
+            <i class="btn fa fa-sort-asc" v-on:click="setSortDirection('sbi' , 1)" aria-hidden="true"></i>
+            <i class="btn fa fa-sort-desc" v-on:click="setSortDirection('sbi' , -1)" aria-hidden="true"></i>
           </th>
           <th>總停車格
-            <i class="fa fa-sort-asc" aria-hidden="true"></i>
-            <i class="fa fa-sort-desc" aria-hidden="true"></i>
+            <i class="btn fa fa-sort-asc" v-on:click="setSortDirection('tot' , 1)" aria-hidden="true"></i>
+            <i class="btn fa fa-sort-desc" v-on:click="setSortDirection('tot' , -1)" aria-hidden="true"></i>
           </th>
           <th>資料更新時間</th>
         </tr>
       </thead>
       <tbody>
         <!-- 請補完 -->
+        <tr v-for="stop of searchUBikeStops">
+          <td>{{stop.sno}}</td>
+          <td>{{stop.sna}}</td>
+          <td>{{stop.sarea}}</td>
+          <td>{{stop.sbi}}</td>
+          <td>{{stop.tot}}</td>
+          <td>{{stop.mday}}</td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -73,18 +84,53 @@
     // snaen：場站名稱(英文)、 aren：地址(英文)、 bemp：空位數量、 act：全站禁用狀態
 
     const app = Vue.createApp({
-      data () {
+      data() {
         return {
-          uBikeStops: []
+          uBikeStops: [],
+          searchValue: "",
+          sort: {
+            name: "",
+            dir: 1
+          }
         }
       },
-      created () {
+      created() {
         fetch('https://tcgbusfs.blob.core.windows.net/blobyoubike/YouBikeTP.gz')
-            .then(res => res.json())
-            .then(json => {
-              const stops = Object.keys(json.retVal).map(key => json.retVal[key]);
-              this.uBikeStops = stops;
-            });
+          .then(res => res.json())
+          .then(json => {
+            const stops = Object.keys(json.retVal).map(key => json.retVal[key]);
+            this.uBikeStops = stops;
+          });
+      },
+      computed: {
+        searchUBikeStops: {
+          get() {
+            const { name, dir } = this.sort;
+
+            return this.uBikeStops
+              .sort((a, b) => {
+                const aNum = Number(a[name]);
+                const bNum = Number(b[name]);
+                if (aNum > bNum) return 1 * dir;
+
+                if (aNum < bNum) return -1 * dir;
+
+                else return 0
+              })
+              .filter((stop) => {
+                return this.searchValue === "" || stop.sna.indexOf(this.searchValue) !== -1;
+              })
+          }
+
+        }
+      },
+      methods: {
+        setSortDirection(name, dir) {
+          this.sort = {
+            name,
+            dir
+          }
+        }
       }
     }).mount('#app');
   </script>
